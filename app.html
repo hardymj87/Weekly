@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <base href="./">
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -102,7 +103,7 @@
 
 
   </style>
-<base href="./">
+
 
 </head>
 <body>
@@ -123,41 +124,56 @@
 
   <!-- POC mock (fake SharePoint) -->
   <script src="mock.js"></script>
-  <script>
+<script>
   const ROUTES = {
-    home:    { html: "Home.html",    js: null },
+    home:    { html: "Home.html",    js: null },            // or point to Screen1.html if you don't have Home.html
     screen1: { html: "Screen1.html", js: "Screen1.js" },
     screen2: { html: "Screen2.html", js: "Screen2.js" },
     screen3: { html: "Screen3.html", js: "Screen3.js" }
   };
 
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src + `?v=${Date.now()}`; // cache-buster
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("Failed to load " + src));
+      document.body.appendChild(s);
+    });
+  }
+
   async function navigate() {
     const hash = location.hash || "#/home";
     const key = hash.slice(2);
     const route = ROUTES[key];
-    document.querySelectorAll(".header-nav a").forEach(a=>{
-      a.classList.toggle("active", a.getAttribute("href") === hash);
-    });
-    if (!route) return;
+
+    document.querySelectorAll(".header-nav a").forEach(a =>
+      a.classList.toggle("active", a.getAttribute("href") === hash)
+    );
 
     const main = document.getElementById("main");
+    if (!route) {
+      main.innerHTML = `<div class="card"><h2>Not found</h2><p>No route: ${key}</p></div>`;
+      return;
+    }
+
     try {
       const resp = await fetch(route.html, { cache: "no-cache" });
-      if (!resp.ok) throw new Error(`Failed to fetch ${route.html}`);
+      if (!resp.ok) throw new Error(`Failed to fetch ${route.html} (${resp.status})`);
       main.innerHTML = await resp.text();
     } catch (e) {
-      main.innerHTML = `<div class="card"><h2>Error</h2><p>${e.message}</p></div>`;
+      main.innerHTML = `<div class="card"><h2>Load error</h2><p>${e.message}</p></div>`;
       return;
     }
 
     if (route.js) {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = route.js + `?v=${Date.now()}`;
-        s.onload = resolve;
-        s.onerror = () => reject(new Error(`Failed to load ${route.js}`));
-        document.body.appendChild(s);
-      });
+      try { await loadScript(route.js); }
+      catch (e) {
+        const warn = document.createElement("div");
+        warn.className = "card";
+        warn.innerHTML = `<h3>Script load error</h3><p>${e.message}</p>`;
+        main.appendChild(warn);
+      }
     }
   }
 
@@ -165,7 +181,10 @@
   window.addEventListener("DOMContentLoaded", navigate);
 </script>
 
+
+
 </body>
 </html>
      
      
+
