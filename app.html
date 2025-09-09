@@ -102,9 +102,11 @@
 
 
   </style>
+<base href="./">
+
 </head>
 <body>
-<div class="app">
+ <div class="app">
     <header class="app-header">
       <nav class="header-nav">
         <a href="#/home">Home</a>
@@ -122,131 +124,48 @@
   <!-- POC mock (fake SharePoint) -->
   <script src="mock.js"></script>
   <script>
-    const ROUTES = {
-      // Home just reuses Screen1.html to keep POC simple; change if you have a separate Home.html
-      home:    { html:"Screen1.html", js:"Screen1.js" },
-      screen1: { html:"Screen1.html", js:"Screen1.js" },
-      screen2: { html:"Screen2.html", js:"Screen2.js" },
-      screen3: { html:"Screen3.html", js:"Screen3.js" }
-    };
+  const ROUTES = {
+    home:    { html: "Home.html",    js: null },
+    screen1: { html: "Screen1.html", js: "Screen1.js" },
+    screen2: { html: "Screen2.html", js: "Screen2.js" },
+    screen3: { html: "Screen3.html", js: "Screen3.js" }
+  };
 
-    async function navigate() {
-      const hash = location.hash || "#/home";
-      const key = hash.slice(2);
-      const route = ROUTES[key];
-      document.querySelectorAll(".header-nav a").forEach(a=>{
-        a.classList.toggle("active", a.getAttribute("href") === hash);
-      });
-      if (!route) return;
+  async function navigate() {
+    const hash = location.hash || "#/home";
+    const key = hash.slice(2);
+    const route = ROUTES[key];
+    document.querySelectorAll(".header-nav a").forEach(a=>{
+      a.classList.toggle("active", a.getAttribute("href") === hash);
+    });
+    if (!route) return;
 
-      // Load fragment
-      const main = document.getElementById("main");
-      try {
-        const resp = await fetch(route.html, { cache: "no-cache" });
-        if (!resp.ok) throw new Error(`Failed to fetch ${route.html}`);
-        main.innerHTML = await resp.text();
-      } catch (e) {
-        main.innerHTML = `<div class="card"><h2>Error</h2><p>${e.message}</p></div>`;
-        return;
-      }
-
-      // Load & run screen script (self-invoking in each ScreenX.js)
-      if (route.js) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src = route.js + `?v=${Date.now()}`;
-          s.onload = resolve;
-          s.onerror = () => reject(new Error(`Failed to load ${route.js}`));
-          document.body.appendChild(s);
-        });
-      }
-    }
-
-    window.addEventListener("hashchange", navigate);
-    window.addEventListener("DOMContentLoaded", navigate);
-  </script>  <div class="app" role="application" aria-label="SharePoint Single-Page App with 4 screens">
-    
-    <header class="app-header">
-  <div class="brand">
-    <div class="logo" aria-hidden="true"></div>
-    <span id="headerTitle">Home</span>
-  </div>
-
-
-  <nav class="header-nav">
-    <a href="#/home">Home</a>
-    <a href="#/screen1">Screen 1</a>
-    <a href="#/screen2">Screen 2</a>
-    <a href="#/screen3">Screen 3</a>
-  </nav>
-
-  
-</header>
-
-
-
-
-    <main id="appMain">
-      <!-- Screens are dynamically injected here. Each route loads an HTML fragment and optional JS. -->
-      <section id="screen-home" class="screen active" data-title="Home">
-        <div class="grid cols-3">
-          <div class="card">
-            <h2>Welcome</h2>
-            <p class="muted">This is the Home screen. Use the sidebar to switch screens. Looks and feels like a Power App, but it's pure HTML/CSS/JS.</p>
-          </div>
-          <div class="card">
-            <h2>Quick Links</h2>
-            <ul>
-              <li><a href="#/screen1">Go to Screen 1</a></li>
-              <li><a href="#/screen2">Go to Screen 2</a></li>
-              <li><a href="#/screen3">Go to Screen 3</a></li>
-            </ul>
-          </div>
-          <div class="card">
-            <h2>Status</h2>
-            <div id="statusBox" class="muted">Ready.</div>
-          </div>
-        </div>
-      </section>
-      <section id="screen-one" class="screen" data-title="Screen 1"></section>
-      <section id="screen-two" class="screen" data-title="Screen 2"></section>
-      <section id="screen-three" class="screen" data-title="Screen 3"></section>
-    </main>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-
-  <script src="mock.js"></script>
-  <script>
-    const ROUTES = {
-      home:    { html:"Screen1.html", js:null, ns:"Home" }, // we'll inline Home in app
-      screen1: { html:"Screen1.html", js:"Screen1.js", ns:"Screen1" },
-      screen2: { html:"Screen2.html", js:"Screen2.js", ns:"Screen2" },
-      screen3: { html:"Screen3.html", js:"Screen3.js", ns:"Screen3" }
-    };
-
-    async function navigate() {
-      const hash = location.hash || "#/home";
-      const routeKey = hash.replace("#/","");
-      const route = ROUTES[routeKey];
-      document.querySelectorAll(".header-nav a").forEach(a=>{
-        a.classList.toggle("active", a.getAttribute("href")===hash);
-      });
-      if (!route) return;
-      const main = document.getElementById("main");
-      const resp = await fetch(route.html);
+    const main = document.getElementById("main");
+    try {
+      const resp = await fetch(route.html, { cache: "no-cache" });
+      if (!resp.ok) throw new Error(`Failed to fetch ${route.html}`);
       main.innerHTML = await resp.text();
-      if (route.js) {
-        const script = document.createElement("script");
-        script.src = route.js;
-        document.body.appendChild(script);
-      }
+    } catch (e) {
+      main.innerHTML = `<div class="card"><h2>Error</h2><p>${e.message}</p></div>`;
+      return;
     }
-    window.addEventListener("hashchange", navigate);
-    window.addEventListener("DOMContentLoaded", navigate);
-  </script>
 
- 
+    if (route.js) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = route.js + `?v=${Date.now()}`;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error(`Failed to load ${route.js}`));
+        document.body.appendChild(s);
+      });
+    }
+  }
+
+  window.addEventListener("hashchange", navigate);
+  window.addEventListener("DOMContentLoaded", navigate);
+</script>
+
 </body>
-
 </html>
+     
+     
