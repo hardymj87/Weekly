@@ -104,7 +104,67 @@
   </style>
 </head>
 <body>
-  <div class="app" role="application" aria-label="SharePoint Single-Page App with 4 screens">
+<div class="app">
+    <header class="app-header">
+      <nav class="header-nav">
+        <a href="#/home">Home</a>
+        <a href="#/screen1">Screen 1</a>
+        <a href="#/screen2">Screen 2</a>
+        <a href="#/screen3">Screen 3</a>
+      </nav>
+    </header>
+
+    <main id="main"><!-- Screen content loads here --></main>
+
+    <footer>POC Footer</footer>
+  </div>
+
+  <!-- POC mock (fake SharePoint) -->
+  <script src="mock.js"></script>
+  <script>
+    const ROUTES = {
+      // Home just reuses Screen1.html to keep POC simple; change if you have a separate Home.html
+      home:    { html:"Screen1.html", js:"Screen1.js" },
+      screen1: { html:"Screen1.html", js:"Screen1.js" },
+      screen2: { html:"Screen2.html", js:"Screen2.js" },
+      screen3: { html:"Screen3.html", js:"Screen3.js" }
+    };
+
+    async function navigate() {
+      const hash = location.hash || "#/home";
+      const key = hash.slice(2);
+      const route = ROUTES[key];
+      document.querySelectorAll(".header-nav a").forEach(a=>{
+        a.classList.toggle("active", a.getAttribute("href") === hash);
+      });
+      if (!route) return;
+
+      // Load fragment
+      const main = document.getElementById("main");
+      try {
+        const resp = await fetch(route.html, { cache: "no-cache" });
+        if (!resp.ok) throw new Error(`Failed to fetch ${route.html}`);
+        main.innerHTML = await resp.text();
+      } catch (e) {
+        main.innerHTML = `<div class="card"><h2>Error</h2><p>${e.message}</p></div>`;
+        return;
+      }
+
+      // Load & run screen script (self-invoking in each ScreenX.js)
+      if (route.js) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = route.js + `?v=${Date.now()}`;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error(`Failed to load ${route.js}`));
+          document.body.appendChild(s);
+        });
+      }
+    }
+
+    window.addEventListener("hashchange", navigate);
+    window.addEventListener("DOMContentLoaded", navigate);
+  </script>  <div class="app" role="application" aria-label="SharePoint Single-Page App with 4 screens">
     
     <header class="app-header">
   <div class="brand">
@@ -188,4 +248,5 @@
 
  
 </body>
+
 </html>
